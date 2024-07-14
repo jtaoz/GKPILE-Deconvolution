@@ -1,5 +1,4 @@
 import torch.nn as nn
-import torch.utils.data
 import torch.nn.functional as F
 from torchvision.models import resnet
 
@@ -18,19 +17,25 @@ class Generator(nn.Module):
         self.nz = nz
         self.ngf = 64
         self.isize = isize
+        kernel_dict = {31: 5, 45: 4, 55: 5, 65: 6, 75:4}
+        pad_dict = {31: [1, 1, 1], 45:[1, 1, 1], 55: [0, 1, 1], 65: [1, 1, 1], 75: [0, 0, 0]}
 
-        self.main1 = nn.Sequential()
         if self.isize == 31:
-            self.main1.add_module('0', self._block(self.nz, self.ngf * 4, 3, 1, 0))
+            self.layer1 = self._block(self.nz, self.ngf * 4, 3, 1, 0)
+        elif self.isize == 45:
+            self.layer1 = self._block(self.nz, self.ngf * 4, 5, 1, 0)
         elif self.isize == 55:
-            self.main1.add_module('0', self._block(self.nz, self.ngf * 4, 5, 1, 0))
+            self.layer1 = self._block(self.nz, self.ngf * 4, 5, 1, 0)
         elif self.isize == 65:
-            self.main1.add_module('0', self._block(self.nz, self.ngf * 4, 7, 1, 0))
+            self.layer1 = self._block(self.nz, self.ngf * 4, 7, 1, 0)
         elif self.isize == 75:
-            self.main1.add_module('0', self._block(self.nz, self.ngf * 4, 7, 1, 0))
+            self.layer1 = self._block(self.nz, self.ngf * 4, 7, 1, 0)
+        else:
+            raise ValueError(f'Invalid input size: {self.isize}. Supported sizes are 31, 45, 55, 65, 75')
         
-        self.main2 = nn.Sequential()
-        self.net()
+        self.layers = nn.Sequential(self._block(self.ngf * 4, self.ngf * 2, 5, 2, pad_dict[self.isize][0]), 
+                                   self._block(self.ngf * 2, self.ngf, kernel_dict[self.isize], 2, pad_dict[self.isize][1]), 
+                                   nn.ConvTranspose2d(self.ngf, 1, 5, 2, pad_dict[self.isize][2], bias=False))
 
     def _block(self, in_channel, out_channel, kernel_size, stride, padding):
         return nn.Sequential(
@@ -39,37 +44,16 @@ class Generator(nn.Module):
             nn.ReLU(True),
         )
 
-    def net(self):
-        if self.isize == 31:
-            self.main2.add_module('1', self._block(self.ngf * 4, self.ngf * 2, 5, 2, 1))
-            self.main2.add_module('2', self._block(self.ngf * 2, self.ngf, 5, 2, 1))
-            self.main2.add_module('3', nn.ConvTranspose2d(self.ngf, 1, 5, 2, 1, bias=False))
-        elif self.isize == 55:
-            self.main2.add_module('1', self._block(self.ngf * 4, self.ngf * 2, 5, 2, 0))
-            self.main2.add_module('2', self._block(self.ngf * 2, self.ngf, 5, 2, 1))
-            self.main2.add_module('3', nn.ConvTranspose2d(self.ngf, 1, 5, 2, 1, bias=False))
-        elif self.isize == 65:
-            self.main2.add_module('1', self._block(self.ngf * 4, self.ngf * 2, 5, 2, 1))
-            self.main2.add_module('2', self._block(self.ngf * 2, self.ngf, 6, 2, 1))
-            self.main2.add_module('3', nn.ConvTranspose2d(self.ngf, 1, 5, 2, 1, bias=False))
-        elif self.isize == 75:
-            self.main2.add_module('1', self._block(self.ngf * 4, self.ngf * 2, 5, 2, 0))
-            self.main2.add_module('2', self._block(self.ngf * 2, self.ngf, 4, 2, 0))
-            self.main2.add_module('3', nn.ConvTranspose2d(self.ngf, 1, 5, 2, 0, bias=False))
-        else:
-            print('Incorrect input of kernel size!')
-            assert False
-
     def forward(self, x):
-        fe = self.net_part1(x)
-        x = self.net_part2(fe)
+        w = self.g1(x)
+        x = self.Gk(w)
         return x
 
-    def net_part1(self, x):
-        return self.main1(x)
+    def g1(self, x):
+        return self.layer1(x)
 
-    def net_part2(self, x):
-        x = self.main2(x)
+    def Gk(self, x):
+        x = self.layers(x)
         x = x.view(x.size(0), 1, self.isize * self.isize)
         x = F.softmax(x, dim=2)
         x = x.view(x.size(0), 1, self.isize, self.isize)
@@ -82,8 +66,17 @@ class Discriminator(nn.Module):
         self.isize = isize
         self.nc = 1
         self.ndf = 64
-        self.main = nn.Sequential()
-        self.net()
+        kernel_dict = {31: [5, 5, 5, 3], 45: [5, 4, 5, 5], 55: [5, 5, 5, 5], 65: [5, 6, 5, 7], 75:[5, 4, 5, 7]}
+        pad_dict = {31: [1, 1, 1, 0], 45:[1, 1, 1, 0], 55: [1, 1, 0, 0], 65: [1, 1, 1, 0], 75: [0, 0, 0, 0]}
+        
+        if self.isize not in kernel_dict.keys():
+            raise ValueError(f'Invalid input size: {self.isize}. Supported sizes are 31, 45, 55, 65, 75')
+        
+        self.layers = nn.Sequential(self._block(self.nc, self.ndf, kernel_dict[self.isize][0], 2, pad_dict[self.isize][0], False),
+                                    self._block(self.ndf, self.ndf * 2, kernel_dict[self.isize][1], 2, pad_dict[self.isize][1]),
+                                    self._block(self.ndf * 2, self.ndf * 4, kernel_dict[self.isize][2], 2, pad_dict[self.isize][2]),
+                                    nn.Conv2d(self.ndf * 4, 1, kernel_dict[self.isize][3], 1, pad_dict[self.isize][3], bias=False),
+                                    nn.Sigmoid())
 
     def _block(self, in_channel, out_channel, kernel_size, stride, padding, bn=True):
         block = nn.Sequential(
@@ -93,38 +86,8 @@ class Discriminator(nn.Module):
         block.add_module('2', nn.LeakyReLU(0.2, inplace=True))
         return block
 
-    def net(self):
-
-        if self.isize == 31:
-            self.main.add_module('0', self._block(self.nc, self.ndf, 5, 2, 1, False))
-            self.main.add_module('1', self._block(self.ndf, self.ndf * 2, 5, 2, 1))
-            self.main.add_module('2', self._block(self.ndf * 2, self.ndf * 4, 5, 2, 1))
-            self.main.add_module('3', nn.Conv2d(self.ndf * 4, 1, 3, 1, 0, bias=False))
-            self.main.add_module('4', nn.Sigmoid())
-        elif self.isize == 55:
-            self.main.add_module('0', self._block(self.nc, self.ndf, 5, 2, 1, False))
-            self.main.add_module('1', self._block(self.ndf, self.ndf * 2, 5, 2, 1))
-            self.main.add_module('2', self._block(self.ndf * 2, self.ndf * 4, 5, 2, 0))
-            self.main.add_module('3', nn.Conv2d(self.ndf * 4, 1, 5, 1, 0, bias=False))
-            self.main.add_module('4', nn.Sigmoid())
-        elif self.isize == 65:
-            self.main.add_module('0', self._block(self.nc, self.ndf, 5, 2, 1, False))
-            self.main.add_module('1', self._block(self.ndf, self.ndf * 2, 6, 2, 1))
-            self.main.add_module('2', self._block(self.ndf * 2, self.ndf * 4, 5, 2, 1))
-            self.main.add_module('3', nn.Conv2d(self.ndf * 4, 1, 7, 1, 0, bias=False))
-            self.main.add_module('4', nn.Sigmoid())
-        elif self.isize == 75:
-            self.main.add_module('0', self._block(self.nc, self.ndf, 5, 2, 0, False))
-            self.main.add_module('1', self._block(self.ndf, self.ndf * 2, 4, 2, 0))
-            self.main.add_module('2', self._block(self.ndf * 2, self.ndf * 4, 5, 2, 0))
-            self.main.add_module('3', nn.Conv2d(self.ndf * 4, 1, 7, 1, 0, bias=False))
-            self.main.add_module('4', nn.Sigmoid())
-        else:
-            print('Incorrect input of kernel size!')
-            assert False
-
     def forward(self, x):
-        x = self.main(x)
+        x = self.layers(x)
         return x
 
 
