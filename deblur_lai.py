@@ -107,9 +107,9 @@ for f in files_source:
     net = net.type(dtype)
 
     z = netE(y.unsqueeze(0))
-    w = netG.net_part1(z)
+    w = netG.g1(z)
     w.requires_grad = True
-    out_k = netG.net_part2(w)
+    out_k = netG.Gk(w)
 
     # Losses
     mse = torch.nn.MSELoss().type(dtype)
@@ -120,7 +120,7 @@ for f in files_source:
 
     net_input_saved = net_input.detach().clone()
 
-    save_path = os.path.join(new_path, 'initialization_k.png')
+    save_path = os.path.join(new_path, 'initialization_k1.png')
     out_k_np = torch_to_np(out_k)
     out_k_np = out_k_np.squeeze()
     out_k_np /= np.max(out_k_np)
@@ -138,7 +138,7 @@ for f in files_source:
 
         # get the network output
         out_x = net(net_input)
-        out_k = netG.net_part2(w)
+        out_k = netG.Gk(w)
         out_img = F.conv2d(out_x, out_k.repeat(3, 1, 1, 1), groups=3)
 
         if step < 500:

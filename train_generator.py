@@ -51,7 +51,7 @@ def train(kernel_size, kernel_path):
     netD.apply(weights_init)
 
     criterion = nn.BCELoss()
-    fixed_noise = torch.cuda.FloatTensor(64, 100).normal_()
+    fixed_noise = torch.cuda.FloatTensor(64, 100, 1, 1).normal_()
 
     real_label = 1.
     fake_label = 0.
@@ -71,7 +71,7 @@ def train(kernel_size, kernel_path):
             errD_real.backward()
             D_x = output.mean().item()
 
-            noise = torch.cuda.FloatTensor(b_size, opt.nz).normal_()
+            noise = torch.cuda.FloatTensor(b_size, 100, 1, 1).normal_()
             fake = netG(noise)
             label.fill_(fake_label)
             output = netD(fake.detach()).view(-1)

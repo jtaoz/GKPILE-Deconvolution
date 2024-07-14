@@ -57,10 +57,10 @@ def train(kernel_size, kernel_path):
     loader_kernel = DataLoader(dataset=kernel_set, batch_size=opt.batch_size, shuffle=True, drop_last=True)
 
     netE = ResNet18().cuda()
-    netD = Generator(kernel_size).cuda()
-    netD.load_state_dict(torch.load(netD_path))
-    netD.eval()
-    for p in netD.parameters(): p.requires_grad = False
+    netG = Generator(kernel_size).cuda()
+    netG.load_state_dict(torch.load(netD_path))
+    netG.eval()
+    for p in netG.parameters(): p.requires_grad = False
 
     optimizerE = optim.Adam(netE.parameters(), lr=opt.lr)
     l1 = nn.L1Loss()
@@ -88,12 +88,12 @@ def train(kernel_size, kernel_path):
 
             for _ in range(opt.num_iters):
                 optimizerI.zero_grad()
-                output_z0 = netD(z0)
+                output_z0 = netG(z0)
                 loss_iter = l1(output_z0, kernel)
                 loss_iter.backward()
                 optimizerI.step()
             zi = z0.clone().detach()
-            output = netD(ze)
+            output = netG(ze)
 
             loss1 = l1(output, kernel)
             loss2 = mse(ze, zi)
