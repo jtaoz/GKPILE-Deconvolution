@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--num_iter', type=int, default=5000, help='number of epochs of training')
 parser.add_argument('--img_size', type=int, default=[256, 256], help='size of each image dimension')
-parser.add_argument('--kernel_size', type=int, default=[21, 21], help='size of blur kernel')
+parser.add_argument('--kernel_size', type=int, default=21, help='size of blur kernel')
 parser.add_argument('--data_path', type=str, default="./datasets/lai/uniform", help='path to blurry image')
 parser.add_argument('--models_path', type=str, default='./models', help='path to save the model file')
 parser.add_argument('--save_path', type=str, default="./results/lai", help='path to save results')
