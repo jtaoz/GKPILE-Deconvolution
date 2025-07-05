@@ -42,4 +42,11 @@ python train_initializer.py --kernel_size [size of kernel] --kernel_path [path t
 ## Citation
 
 If our work is useful for your research, please cite our paper:
-
+```bash
+@inproceedings{zhang2024blind,
+  title={Blind Image Deconvolution by Generative-Based Kernel Prior and Initializer via Latent Encoding},
+  author={Zhang, Jiangtao and Yue, Zongsheng and Wang, Hui and Zhao, Qian and Meng, Deyu},
+  booktitle={European Conference on Computer Vision},
+  year={2024}
+}
+```
