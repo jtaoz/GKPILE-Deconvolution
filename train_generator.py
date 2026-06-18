@@ -51,7 +51,7 @@ def train(kernel_size, kernel_path):
     netD.apply(weights_init)
 
     criterion = nn.BCELoss()
-    fixed_noise = torch.randn(64, 100, 1, 1, device='cuda')
+    fixed_noise = torch.randn(16, 100, 1, 1, device='cuda')
 
     real_label = 1.
     fake_label = 0.
@@ -98,8 +98,7 @@ def train(kernel_size, kernel_path):
             if i == len(loader) - 1:
                 with torch.no_grad():
                     fake = netG(fixed_noise)
-                writer.add_image('fake', vutils.make_grid(fake, nrow=8, padding=2, normalize=True), epoch)
-                #writer.add_image('real', vutils.make_grid(real_cpu[:64], nrow=8, padding=2, normalize=True), epoch)
+                writer.add_image('fake', vutils.make_grid(fake, nrow=4, padding=2, normalize=True), epoch)
 
     torch.save(netG.state_dict(), os.path.join(opt.save_path, model_file_name))
     writer.close()
