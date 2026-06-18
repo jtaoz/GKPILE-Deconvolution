@@ -51,7 +51,7 @@ def train(kernel_size, kernel_path):
     netD.apply(weights_init)
 
     criterion = nn.BCELoss()
-    fixed_noise = torch.cuda.FloatTensor(64, 100, 1, 1).normal_()
+    fixed_noise = torch.randn(64, 100, 1, 1, device='cuda')
 
     real_label = 1.
     fake_label = 0.
@@ -63,15 +63,15 @@ def train(kernel_size, kernel_path):
         for i, data in enumerate(loader, 0):
             # Update D network
             netD.zero_grad()
-            real_cpu = data.cuda()
-            b_size = real_cpu.size(0)
+            x_real = data.cuda()
+            b_size = x_real.size(0)
             label = torch.full((b_size,), real_label).cuda()
-            output = netD(real_cpu).view(-1)
+            output = netD(x_real).view(-1)
             errD_real = criterion(output, label)
             errD_real.backward()
             D_x = output.mean().item()
 
-            noise = torch.cuda.FloatTensor(b_size, 100, 1, 1).normal_()
+            noise = torch.randn(b_size, 100, 1, 1, device='cuda')
             fake = netG(noise)
             label.fill_(fake_label)
             output = netD(fake.detach()).view(-1)
