@@ -1,11 +1,10 @@
-from __future__ import print_function
-
 import argparse
 import os
 
 from networks.skip import skip
 import glob
 from skimage.io import imsave
+from skimage.util import img_as_ubyte
 import warnings
 from tqdm import tqdm
 from torch.optim.lr_scheduler import MultiStepLR
@@ -129,8 +128,7 @@ for f in files_source:
     for step in tqdm(range(num_iter)):
 
         # input regularization
-        net_input = net_input_saved + reg_noise_std * torch.zeros(net_input_saved.shape).type_as(
-            net_input_saved.data).normal_()
+        net_input = net_input_saved + reg_noise_std * torch.randn_like(net_input_saved)
 
         # change the learning rate
         schedulerI.step(step)
@@ -153,9 +151,9 @@ for f in files_source:
             out_x_np = torch_to_np(out_x).transpose(1, 2, 0)
             out_x_np = out_x_np[padh // 2:padh // 2 + img_size[1], padw // 2:padw // 2 + img_size[2], 0:3]
             save_path = os.path.join(new_path, '%d_x.png' % (step+1))
-            imsave(save_path, out_x_np)
+            imsave(save_path, img_as_ubyte(out_x_np))
             save_path = os.path.join(new_path, '%d_k.png' % (step+1))
             out_k_np = torch_to_np(out_k)
             out_k_np = out_k_np.squeeze()
             out_k_np /= np.max(out_k_np)
-            imsave(save_path, out_k_np)
+            imsave(save_path, img_as_ubyte(out_k_np))
