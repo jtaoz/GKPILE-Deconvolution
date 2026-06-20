@@ -41,7 +41,6 @@ os.makedirs(save_path, exist_ok=True)
 
 
 def get_kernel_network(kernel_size):
-
     netG_path = opt.models_path + '/' + 'netG_{}.pth'.format(kernel_size)
     netE_path = opt.models_path + '/' + 'netE_{}.pth'.format(kernel_size)
 
@@ -56,7 +55,6 @@ def get_kernel_network(kernel_size):
     netE.eval()
 
     return netE, netG
-
 
 
 for f in files_source:
@@ -81,7 +79,6 @@ for f in files_source:
 
     netE, netG = get_kernel_network(opt.kernel_size)
 
-    
     new_path = os.path.join(opt.save_path, '%s' % imgname)
     os.makedirs(new_path, exist_ok=True)
     imgs, y = get_color_image(path_to_image, -1)  # load image and convert to np.
@@ -123,7 +120,7 @@ for f in files_source:
     out_k_np = torch_to_np(out_k)
     out_k_np = out_k_np.squeeze()
     out_k_np /= np.max(out_k_np)
-    imsave(save_path, out_k_np)
+    imsave(save_path, img_as_ubyte(out_k_np))
 
     for step in tqdm(range(num_iter)):
 
